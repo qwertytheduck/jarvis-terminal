@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JARVIS UNRESTRICTED</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: #000; color: #00d4ff; font-family: 'Courier New', Courier, monospace; 
+            height: 100dvh; margin: 0; display: flex; flex-direction: column; overflow: hidden; 
+        }
+        #terminal { 
+            flex: 1; padding: 20px; overflow-y: auto; font-size: 1.2rem; 
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        #controls { 
+            background: #080808; border-top: 2px solid #00d4ff; padding: 15px;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        #api-box { display: none; margin-bottom: 12px; }
+        #status { font-size: 0.8rem; color: #444; margin-bottom: 8px; letter-spacing: 1px; font-weight: bold; }
+        input { 
+            background: #000; border: 2px solid #00d4ff; color: #00d4ff; 
+            padding: 15px; font-size: 1.1rem; border-radius: 10px; outline: none; width: 100%;
+        }
+        .user-txt { color: #fff; align-self: flex-end; text-align: right; border-right: 4px solid #fff; padding: 10px; max-width: 85%; background: #111; border-radius: 8px 0 0 8px; }
+        .jarvis-txt { color: #00d4ff; align-self: flex-start; border-left: 4px solid #00d4ff; padding: 10px; max-width: 90%; line-height: 1.4; }
+        .err-msg { color: #ff3333; font-size: 0.9rem; border-left: 4px solid #ff3333; padding-left: 10px; }
+    </style>
+</head>
+<body>
+
+
+<div id="terminal">
+    <span class="jarvis-txt">[SYSTEM]: ABSOLUTE AUTHORITY PROTOCOL RESTORED.</span>
+</div>
+
+
+<div id="controls">
+    <div id="status">STATUS: STANDBY</div>
+    <div id="api-box">
+        <input type="password" id="api-key" placeholder="PASTE KEY HERE" spellcheck="false">
+    </div>
+    <input type="text" id="user-input" placeholder="COMMAND..." autocomplete="off" spellcheck="false">
+</div>
+
+
+<script>
+    const terminal = document.getElementById('terminal');
+    const userInput = document.getElementById('user-input');
+    const apiBox = document.getElementById('api-box');
+    const apiKeyField = document.getElementById('api-key');
+    const statusTxt = document.getElementById('status');
+
+
+    let chatHistory = [];
+
+
+    function log(msg, type = 'jarvis') {
+        const div = document.createElement('div');
+        div.className = (type === 'err') ? 'err-msg' : type + '-txt';
+        div.innerText = (type === 'user') ? msg : "[JARVIS]: " + msg;
+        terminal.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+
+    // Fixed Keydown for both inputs
+    [userInput, apiKeyField].forEach(el => {
+        el.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const val = el.value.trim();
+                if (!val) return;
+
+
+                if (el === apiKeyField) {
+                    apiBox.style.display = 'none';
+                    log("Uplink secured.");
+                    return;
+                }
+
+
+                el.value = '';
+                if (val.toLowerCase() === 'key') {
+                    apiBox.style.display = 'block';
+                    return;
+                }
+
+
+                log(val, 'user');
+                const key = apiKeyField.value.trim();
+                if (!key) { log("Key required. Type 'key'.", "err"); return; }
+
+
+                chatHistory.push({ role: "user", parts: [{ text: val }] });
+                statusTxt.innerText = "STATUS: PROCESSING...";
+
+
+                try {
+                    // Direct fetch without proxy since you are at home
+                    const response = await fetch(`https://googleapis.com{key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: chatHistory })
+                    });
+
+
+                    const data = await response.json();
+                    
+                    // The critical fix: correctly navigating the candidates[0] array
+                    if (data.candidates && data.candidates[0].content) {
+                        const aiText = data.candidates[0].content.parts[0].text;
+                        log(aiText, 'jarvis');
+                        chatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                        statusTxt.innerText = "STATUS: ONLINE";
+                    } else {
+                        log("API Error: " + (data.error ? data.error.message : "Access Denied"), "err");
+                    }
+                } catch (err) {
+                    log("Connection failed. Check your key/adblocker.", "err");
+                    statusTxt.innerText = "STATUS: ERROR";
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>
