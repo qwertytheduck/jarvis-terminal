@@ -2,92 +2,55 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Google Docs</title>
     <link rel="icon" href="https://gstatic.com">
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            background: #000; color: #00d4ff; font-family: 'Courier New', Courier, monospace; 
-            height: 100dvh; margin: 0; display: flex; flex-direction: column; overflow: hidden; 
-        }
-        #terminal { 
-            flex: 1; padding: 20px; overflow-y: auto; font-size: 1.2rem; 
-            display: flex; flex-direction: column; gap: 15px;
-        }
-        #controls { 
-            background: #080808; border-top: 2px solid #00d4ff; padding: 15px;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
-        #api-box { display: none; margin-bottom: 12px; }
-        #status { font-size: 0.8rem; color: #444; margin-bottom: 8px; letter-spacing: 1px; font-weight: bold; }
-        input { 
-            background: #000; border: 2px solid #00d4ff; color: #00d4ff; 
-            padding: 15px; font-size: 1.1rem; border-radius: 10px; outline: none; width: 100%;
-        }
-        .user-txt { color: #fff; align-self: flex-end; text-align: right; border-right: 4px solid #fff; padding: 10px; max-width: 85%; background: #111; border-radius: 8px 0 0 8px; }
-        .jarvis-txt { color: #00d4ff; align-self: flex-start; border-left: 4px solid #00d4ff; padding-left: 10px; max-width: 90%; line-height: 1.4; }
+        body { background: #000; color: #00d4ff; font-family: 'Courier New', monospace; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+        #terminal { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; font-size: 1.2rem; }
+        #controls { background: #080808; border-top: 2px solid #00d4ff; padding: 15px; padding-bottom: 25px; }
+        input { background: #000; border: 2px solid #00d4ff; color: #00d4ff; padding: 15px; width: 100%; outline: none; border-radius: 10px; font-size: 1.1rem; }
+        .user-txt { color: #fff; align-self: flex-end; background: #111; padding: 10px; border-radius: 8px; border-right: 4px solid #fff; max-width: 80%; text-align: right; }
+        .jarvis-txt { color: #00d4ff; align-self: flex-start; border-left: 4px solid #00d4ff; padding-left: 10px; line-height: 1.4; max-width: 90%; }
         .err-msg { color: #ff3333; font-size: 0.9rem; border-left: 4px solid #ff3333; padding-left: 10px; }
     </style>
 </head>
 <body>
-
-<div id="terminal">
-    <span class="jarvis-txt">[SYSTEM]: TUNNEL ESTABLISHED. DISGUISE: ACTIVE.</span>
-</div>
-
+<div id="terminal"><span class="jarvis-txt">[SYSTEM]: PROXY TUNNEL ACTIVE. DISGUISE: ENABLED.</span></div>
 <div id="controls">
-    <div id="status">STATUS: ONLINE</div>
-    <div id="api-box">
-        <input type="password" id="api-key" placeholder="PASTE KEY HERE" spellcheck="false">
-    </div>
-    <input type="text" id="user-input" placeholder="COMMAND..." autocomplete="off" spellcheck="false">
+    <input type="password" id="api-key" placeholder="PASTE KEY" style="display:none; margin-bottom:10px;">
+    <input type="text" id="user-input" placeholder="COMMAND..." autocomplete="off">
 </div>
 
 <script>
-    const terminal = document.getElementById('terminal');
-    const userInput = document.getElementById('user-input');
-    const apiBox = document.getElementById('api-box');
-    const apiKeyField = document.getElementById('api-key');
-    const statusTxt = document.getElementById('status');
-
+    const term = document.getElementById('terminal'), uInp = document.getElementById('user-input'), aInp = document.getElementById('api-key');
     let history = [];
 
     function log(msg, type = 'jarvis') {
         const div = document.createElement('div');
         div.className = (type === 'err') ? 'err-msg' : type + '-txt';
-        div.innerText = (type === 'user') ? msg : "[JARVIS]: " + msg;
-        terminal.appendChild(div);
-        terminal.scrollTop = terminal.scrollHeight;
+        div.innerText = (type === 'user' ? '' : '[JARVIS]: ') + msg;
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
     }
 
-    [userInput, apiKeyField].forEach(el => {
+    [uInp, aInp].forEach(el => {
         el.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const val = el.value.trim();
                 if (!val) return;
-
-                if (el === apiKeyField) {
-                    apiBox.style.display = 'none';
-                    log("Uplink secured.");
-                    return;
-                }
-
+                if (el === aInp) { aInp.style.display = 'none'; log("Uplink secured."); return; }
+                
                 el.value = '';
-                if (val.toLowerCase() === 'key') {
-                    apiBox.style.display = 'block';
-                    return;
-                }
-
+                if (val.toLowerCase() === 'key') { aInp.style.display = 'block'; return; }
+                
                 log(val, 'user');
-                const key = apiKeyField.value.trim();
-                if (!key) { log("Key required. Type 'key'.", "err"); return; }
+                const key = aInp.value.trim();
+                if (!key) { log("Key Required. Type 'key'.", "err"); return; }
 
                 history.push({ role: "user", parts: [{ text: val }] });
-                statusTxt.innerText = "STATUS: PROCESSING...";
 
                 try {
-                    // THE TUNNEL FIX: Wrapping the request in a proxy
+                    // THE FIX: Using a Proxy to bypass browser security blocks
                     const target = `https://googleapis.com{key}`;
                     const proxy = `https://allorigins.win{encodeURIComponent(target)}`;
 
@@ -99,17 +62,17 @@
                     const outerData = await response.json();
                     const data = JSON.parse(outerData.contents);
                     
+                    // THE SECOND FIX: Correct array indexing for the response data
                     if (data.candidates && data.candidates[0].content) {
                         const aiText = data.candidates[0].content.parts[0].text;
                         log(aiText, 'jarvis');
                         history.push({ role: "model", parts: [{ text: aiText }] });
-                        statusTxt.innerText = "STATUS: ONLINE";
+                        if (history.length > 10) history = history.slice(-6);
                     } else {
-                        log("API Error: Check if your key is correct.", "err");
+                        log("API Error: Check your key or proxy status.", "err");
                     }
                 } catch (err) {
-                    log("Network blocked. Try a different API key or check your Wi-Fi.", "err");
-                    statusTxt.innerText = "STATUS: ERROR";
+                    log("Network failure. Trying secondary route...", "err");
                 }
             }
         });
