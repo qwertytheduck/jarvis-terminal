@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-<div id="terminal"><span class="jarvis-txt">[SYSTEM]: PROXY TUNNEL ACTIVE. DISGUISE: ENABLED.</span></div>
+<div id="terminal"><span class="jarvis-txt">[SYSTEM]: DIRECT UPLINK INITIATED. DISGUISE: ACTIVE.</span></div>
 <div id="controls">
     <input type="password" id="api-key" placeholder="PASTE KEY" style="display:none; margin-bottom:10px;">
     <input type="text" id="user-input" placeholder="COMMAND..." autocomplete="off">
@@ -50,29 +50,28 @@
                 history.push({ role: "user", parts: [{ text: val }] });
 
                 try {
-                    // THE FIX: Using a Proxy to bypass browser security blocks
-                    const target = `https://googleapis.com{key}`;
-                    const proxy = `https://allorigins.win{encodeURIComponent(target)}`;
+                    // FIXED: Direct connection using stable v1 endpoint (often bypasses school filters)
+                    const url = `https://googleapis.com{key}`;
 
-                    const response = await fetch(proxy, {
+                    const response = await fetch(url, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: history })
                     });
 
-                    const outerData = await response.json();
-                    const data = JSON.parse(outerData.contents);
+                    const data = await response.json();
                     
-                    // THE SECOND FIX: Correct array indexing for the response data
+                    // FIXED: Correct indexing and error checking
                     if (data.candidates && data.candidates[0].content) {
                         const aiText = data.candidates[0].content.parts[0].text;
                         log(aiText, 'jarvis');
                         history.push({ role: "model", parts: [{ text: aiText }] });
                         if (history.length > 10) history = history.slice(-6);
                     } else {
-                        log("API Error: Check your key or proxy status.", "err");
+                        log("API Error: " + (data.error ? data.error.message : "Access Denied"), "err");
                     }
                 } catch (err) {
-                    log("Network failure. Trying secondary route...", "err");
+                    log("Network failure. If you are on school Wi-Fi, try a phone hotspot.", "err");
                 }
             }
         });
